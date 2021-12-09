@@ -1,0 +1,446 @@
+---
+title: "Data624_Optional_Assign"
+author: "Alexis Mekueko"
+date: "12/3/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r load-packages, results='hide',warning=FALSE, message=FALSE, echo=FALSE}
+
+##library(tidyverse) #loading all library needed for this assignment
+
+
+library(knitr)
+library(dplyr)
+library(tidyr)
+
+library(stats)
+library(statsr)
+library(GGally)
+library(pdftools)
+library(correlation)
+library(naniar)
+
+library(urca)
+library(tsibble)
+library(tseries)
+library(forecast)
+library(caret)
+set.seed(34332)
+library(plyr)
+library(arules)
+library(arulesViz)
+library(report)
+library(cluster) # to perform different types of hierarchical clustering
+# package functions used: daisy(), diana(), clusplot()
+#install.packages("visdat")
+library(visdat)
+
+```
+
+
+[Github Link](https://github.com/asmozo24/Data624_Market_Basket_Analysis)
+<br>
+[Web Link](https://rpubs.com/amekueko/845664)
+
+Note: This assignment is about how to apply association rule and cluster analysis to market basket analysis.
+
+
+Association Rule Mining in R Language is an Unsupervised Non-linear algorithm to uncover how the items are associated with each other. In it, frequent Mining shows which items appear together in a transaction or relation. It’s majorly used by retailers, grocery stores, an online marketplace that has a large transactional database. The same way when any online social media, marketplace, and e-commerce websites know what you buy next using recommendations engines. The recommendations you get on item or variable, while you check out the order is because of Association rule mining boarded on past customer data. There are three common ways to measure association:
+
+What Is Market Basket Analysis?
+
+Market Basket Analysis is a technique which identifies the strength of association between pairs of products purchased together and identify patterns of co-occurrence. A co-occurrence is when two or more things take place together.
+
+Market Basket Analysis creates If-Then scenario rules, for example, if item A is purchased then item B is likely to be purchased. The rules are probabilistic in nature or, in other words, they are derived from the frequencies of co-occurrence in the observations. Frequency is the proportion of baskets that contain the items of interest. The rules can be used in pricing strategies, product placement, and various types of cross-selling strategies.
+
+How Market Basket Analysis Works
+
+In order to make it easier to understand, think of Market Basket Analysis in terms of shopping at a supermarket. Market Basket Analysis takes data at transaction level, which lists all items bought by a customer in a single purchase. The technique determines relationships of what products were purchased with which other product(s). These relationships are then used to build profiles containing If-Then rules of the items purchased.
+
+The rules could be written as:
+
+If {A} Then {B}
+The If part of the rule (the {A} above) is known as the antecedent and the THEN part of the rule is known as the consequent (the {B} above). The antecedent is the condition and the consequent is the result. The association rule has three measures that express the degree of confidence in the rule, Support, Confidence, and Lift.
+
+For example, you are in a supermarket to buy milk. Based on the analysis, are you more likely to buy apples or cheese in the same transaction than somebody who did not buy milk?
+
+
+Support
+Support is nothing but a percentage representation.
+Support = Total number transactions containing Item ’n’ / Total number of transactions
+
+Confidence
+Lift
+Theory
+In association rule mining, Support, Confidence, and Lift measure association.
+
+
+Cluster Analysis
+
+Cluster analysis can be a powerful data-mining tool for any organization that needs to identify discrete groups of customers, sales transactions, or other types of behaviors and things
+Cluster Analysis in R, when we do data analytics, there are two kinds of approaches one is supervised and another is unsupervised.
+Clustering is a method for finding subgroups of observations within a data set.
+When we are doing clustering, we need observations in the same group with similar patterns and observations in different groups to be dissimilar.
+If there is no response variable, then suitable for an unsupervised method, which implies that it seeks to find relationships between the n observations without being trained by a response variable.
+Clustering allows us to identify homogenous groups and categorize them from the dataset.
+
+One of the simplest clusterings is K-means, the most commonly used clustering method for splitting a dataset into a set of n groups.
+
+If datasets contain no response variable and with many variables then it comes under an unsupervised approach.
+
+Cluster analysis is an unsupervised approach and sed for segmenting markets into groups of similar customers or patterns.
+The clustering process itself contains 3 distinctive steps:
+
+1- Calculating dissimilarity matrix — is arguably the most important decision in clustering, and all your further steps are going to be based on the dissimilarity matrix you’ve made.
+2- Choosing the clustering method
+3- Assessing clusters
+
+
+## Data Structure
+ 
+```{r, echo=FALSE}
+
+basket <- read.csv("https://raw.githubusercontent.com/asmozo24/Data624_Market_Basket_Analysis/main/GroceryDataSet.csv", stringsAsFactors=FALSE)
+# Loading data
+df1 <- read.transactions('https://raw.githubusercontent.com/asmozo24/Data624_Market_Basket_Analysis/main/GroceryDataSet.csv', 
+                            sep = ',', rm.duplicates = TRUE)
+
+#view(basket)
+#glimpse(basket)
+str(basket)
+basket %>%
+  head(8)%>%
+  kable()
+summary(df1)
+
+
+``` 
+
+
+## 2. Data Preparation
+
+### 2.1 Checking for Missing Values
+
+
+```{r }
+basket1 <- basket
+
+# Filling the empty spece with "NA"
+basket1a <- dplyr::na_if(basket1, "")
+#dim(basket1a)
+#if (is.na(basket) || basket == '')
+
+misValues <- sum(is.na(basket1))# Returning the column names with missing values
+
+#sum(is.na(basket1a$X.1))
+#misValues1 <- sum(is.na()
+cat("There are missing values for a total record of : " , misValues)
+cat("\nThe percentage of the overall missing values in the dataframe is: ", round((sum(is.na(basket1a))/prod(dim(basket1a)))*100, 2))
+cat("%")
+
+# for visualizing missing values:
+#install.packages("VIM")              # Install VIM package
+library("VIM")                       # Load VIM
+aggr(basket1a)
+
+# All below code works fine
+
+#(colMeans(is.na(basket1a)))*100
+# apply(basket1a, 2, function(col)sum(is.na(col))/length(col))
+# 
+# basket1a %>%
+#   summarize_all(funs(sum(is.na(.)) / length(.)))
+# basket1a%>%
+#   summarise_all(list(name = ~sum(is.na(.))/length(.)))
+# sapply(basket1a, function(y) round((sum(length(which(is.na(y))))/nrow(basket1a))*100.00,2))
+# apply(is.na(basket1a), 2, sum)
+# column_na1 <- colnames(basket1a)[ apply(basket1a, 2, anyNA) ] # 2 is dimension(dim())
+
+
+
+missing.values <- function(df){
+    df %>%
+    gather(key = "variables", value = "val") %>%
+    mutate(is.missing = is.na(val)) %>%
+    group_by(variables, is.missing) %>%
+    dplyr::summarise(number.missing = n()) %>%
+    filter(is.missing==T) %>%
+    dplyr::select(-is.missing) %>%
+    arrange(desc(number.missing)) 
+}
+
+missing.values(basket1a)%>%
+  kable()
+
+# plot missing values
+ missing.values(basket1a) %>%
+   ggplot() +
+     geom_bar(aes(x=variables, y=number.missing), stat = 'identity', col='blue') +
+     labs(x='variables', y="number of missing values", title='Number of missing values per Variable') +
+   theme(axis.text.x = element_text(angle = 100, hjust = 0.2))
+ 
+# Let's see percentage of missing values per column in proportion to number total record (total rows)
+vis_miss(basket1a)
+gg_miss_var(basket1a, show_pct = TRUE) + labs(y = "Missing Values in % to total record")+ theme()
+#colSums(is.na(df))%>% kable()
+cat("\n The table below shows the total number of missing values per variable")
+
+#df1 <- drop_na(df)
+
+
+```
+
+#### Dealing with Missing values
+
+We found that the dataset has a lot of missing values. To handle this issue, our approach is to remove all variables with more than 80% missing variables. 
+
+
+```{r , echo=FALSE}
+# # If we want to remove columns where all values are NA
+# basket1a %>% 
+#   dplyr::select(where(~!all(is.na(.))))
+# # If we want to remove columns where any value is NA
+# basket1a %>% 
+#   dplyr::select(where(~!any(is.na(.))))
+
+## Remove columns with more than 80% NA
+vis_miss(basket1a[ lapply( basket1a, function(x) sum(is.na(x)) / length(x) ) < 0.8 ])
+
+new_df <- basket1a[ lapply( basket1a, function(x) sum(is.na(x)) / length(x) ) < 0.8 ]
+#view(new_df)
+
+df <- basket1a[, which(colMeans(!is.na(basket1a)) > 0.8)]
+
+
+## Remove rows with more than 50% NA
+#df[which(rowMeans(!is.na(df)) > 0.5), ]
+
+## Remove columns and rows with more than 50% NA
+#df[which(rowMeans(!is.na(df)) > 0.5), which(colMeans(!is.na(df)) > 0.5)]
+# df %>% 
+#   purrr::discard(~sum(is.na(.x))/length(.x)* 100 >=50)
+# threshold<-0.5
+# df %>% select(where(~mean(is.na(.))< threshold))
+# df %>% filter(rowMeans(is.na(.)) < threshold)
+
+```
+
+
+
+
+```{r fig.height=5, fig.width=10, , echo=FALSE}
+# install.packages("arules")
+# install.packages("arulesViz")
+
+#library(arules)
+#library(arulesViz)
+
+# Fitting model
+# Training Apriori on the dataset
+#set.seed = 87909 # Setting seed
+associa_rules = apriori(data = df1, 
+                        parameter = list(support = 0.004, 
+                                         confidence = 0.2))
+
+#summary(associa_rules)
+
+```
+The model minimum length is 1, the maximum length is 10, and the target rules with absolute support count is 39. There are 1268 rules for this market analysis. 1268 rules is a lot and can be difficult to focus on. One thing that might affect this number of rules is missing values. The dataset contains a lot of missing value. The result would be different if no value were missing. That being said, we are not confident in applying imputation technique here as it can throw a bias in the analysis and caused misleading information to the decision maker. For this analysis, we will focus on top items (20)
+
+
+###Let's plot the top 20 items in the basket
+
+```{r fig.height=5, fig.width=10, , echo=FALSE}
+
+# Plot
+itemFrequencyPlot(df1, topN = 20, col = rainbow(8), horiz = FALSE, main = "Top20 Recurrent Items in the Basket")
+# +theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+
+```
+
+From the top20 item in the basket plot, we see that item = whole milk sells the most. The next items are "other vegetables", "rolls/buns" and non-alcoholic drinks. If I am the manager of the store, I would position the shelves of these top 8 items(looks similar) by the cashiers or close to the entries. This way, customers can get what they want easily and quick. Happy customer are always willing to buy additional items if they already purchased their top items in the list in a short manner of time. 
+
+
+```{r fig.height=5, fig.width=10, , echo=FALSE}
+
+# Visualising the results
+inspect(sort(associa_rules, by = 'lift')[1:10])
+```
+In data mining and association rule learning, lift is a measure of the performance of a targeting model (association rule) at predicting or classifying cases as having an enhanced response (with respect to the population as a whole), measured against a random choice targeting model.
+
+the lift or lift ratio is the ratio of confidence to expected confidence. Expected confidence is the confidence divided by the frequency of B. The Lift tells us how much better a rule is at predicting the result than just assuming the result in the first place. Greater lift values indicate stronger associations.
+
+The association rule by lift shows relations between:
+1- flour and sugar (4.060694)
+2- processed cheese and white bread (2.874086)
+3- liquor and bottled beer (2.803808)
+4- berries, whole mile and whipped/sour cream (2.758802)
+5- herbs, whole milk and root vegetables (2.739554)
+
+By lift measure, we see that these items a relative strong association together. 
+
+In other words, the probability of buying sugar with the knowledge that flour is already present in the basket is much higher than the probability of buying sugar without the knowledge about the presence of flour.
+
+the probability of buying white bread  with the knowledge that processed cheese is already present in the basket is much higher than the probability of buying white bread  without the knowledge about the presence of processed cheese.
+
+The presence of flour in the basket increases the probability of buying sugar. 
+
+The number of customers buying both flour and sugar might be more than the number of customers who buy only flour. There is 49 counts on the flour and sugar association. It would be good to know how many customers buy only flour and those who buy only sugar. 
+
+The same formula goes for the remaining 03 association...
+
+This would have been the other way around if the value of lift associated with item were less than 1. In this case, we would say that...the probability of buying B with the knowledge that A is already present in the basket is much lower than the probability of buying B without the knowledge about the presence of A. 
+The presence of A in the basket does not increases the probability of buying B.
+
+```{r fig.height=5, fig.width=10, , echo=FALSE}
+inspect(sort(associa_rules, by = 'confidence')[1:10])
+
+
+```
+
+The confidence of an association rule is a percentage value that shows how frequently the rule head occurs among all the groups containing the rule body. The confidence value indicates how reliable this rule is. The higher the value, the more likely the head items occur in a group if it is known that all body items are contained in that group.... You set minimum confidence as part of defining mining settings.
+
+the confidence of the rule is the ratio of the number of transactions that include all items in {B} as well as the number of transactions that include all items in {A} to the number of transactions that include all items in {A}.
+
+The association rule by confident shows relations between:
+1 - {citrus fruit, root vegetables, tropical fruit}	and {other vegetables}	= 0.7857143 or 78.57%
+2- {curd, domestic eggs}	and {whole milk}	= 0.7343750 or 73.44%
+3- {butter, curd}	and {whole milk}	 = 0.7164179	 or 71.64% 
+4- {tropical fruit, whipped/sour cream, yogurt}	and {whole milk}	= 0.7049180 or 70.49%
+5- {root vegetables, tropical fruit, yogurt}	and {whole milk}	 = 0.7000000 or 70%
+
+By confidence measure, we see that item "whole milk" dominate the top 10 of the items that customers buy in association with other item in the store. This means whole milk must be present in sufficient quantity in other for other items in the top 10 to sell. Frustrated customers are the those that cannot find what they usually buy when to certain store. This can have a negative effect on the customers shopping. In fact, it might result in customers leaving the store and attempting to find it at another retailer.
+
+Interpretation:
+
+There is a 78.57% chance that a customer will buy {other vegetables} if customer has already bought {citrus fruit, root vegetables, tropical fruit}
+There is a 73.44% chance that a customer will buy {whole milk} if customer has already bought {curd, domestic eggs}
+
+The same formula goes for the remaining 03 association rules. 
+
+Let's see the plot 
+```{r fig.height=5, fig.width=10, , echo=FALSE}
+
+plot(associa_rules, method = "graph", 
+     measure = "lift", shading = "confidence")
+
+
+```
+
+Let's visualize the top 10 association rules.
+
+```{r , echo=FALSE}
+
+plot(associa_rules, n = 10, method = "graph", measure = "lift", engine = "htmlwidget")
+
+
+```
+
+
+Cluster Analysis
+
+Gower’s Distance Metric
+For categorical data or generally for mixed data types (numerical and categorical data types), we use Hierarchical Clustering. In this method, we need a function to calculate the distance between observations of data. A useful metric named Gower is used as a parameter of function daisy() in R package, cluster. This metric calculates the distance between categorical, or mixed, data types. In daisy function, we can weigh features by parameter weights.
+
+Unsupervised learning techniques generally require that the data be appropriately scaled. Gower is a scaling algorithm applied to mixed numeric and categorical data to bring all variables to a 0–1 range[1]
+
+Hierarchical Clustering
+After selecting features and calculating the distance matrix, it is time to apply hclust function from cluster R package in order to cluster our dataset.
+The object returned by hclust function contains information about solutions with different numbers of clusters, we pass the cutree function the cluster object and the number of clusters we’re interested in. We identify the appropriate number of clusters based on Dendrogram.
+
+Something not going right with the data. We think the missing values need to be taking care first.
+```{r , echo=FALSE}
+
+#gower.dist <- daisy(new_df[ ,1:7],metric = c("gower")) maybe need to reshape date from long to wide
+# 
+# df2 <- df1[ , itemFrequency(df1) > 0.05]
+# diss <- dissimilarity(df2, which = "items")
+# plot(hclust(df2, method = "ward.D2"), main = "Dendrogram", sub = "", xlab = "")
+# 
+# # calculate distance
+# gower <- daisy(df2, metric = "gower", weights =c(1,2,3,4))
+# # hierarchical clustering
+# hierarchical <- hclust(gower, method = "complete")
+# # dendrogram 
+# plot(hc, labels=FALSE)
+# rect.hclust(hc, k=8, border="red")
+# # choose k, number of clusters 
+# cluster<-cutree(hc, k=8)
+# # add cluster to original data 
+# df<-cbind(df,as.factor(cluster))
+
+```
+
+
+
+
+
+```{r , echo=FALSE}
+
+
+```
+
+
+
+
+
+```{r , echo=FALSE}
+
+
+```
+
+
+
+
+```{r , echo=FALSE}
+
+
+```
+
+
+
+```{r , echo=FALSE}
+
+
+```
+
+
+
+
+
+```{r , echo=FALSE}
+
+
+```
+
+
+
+
+```{r , echo=FALSE}
+
+
+```
+
+
+###References
+
+https://www.geeksforgeeks.org/association-rule-mining-in-r-programming/
+
+https://www.r-bloggers.com/2021/04/cluster-analysis-in-r/
+
+https://medium.com/@maryam.alizadeh/clustering-categorical-or-mixed-data-in-r-c0fb6ff38859
+
+https://www.ibm.com/docs/en/db2/9.7?topic=associations-confidence-in-association-rule
+
+https://infocenter.informationbuilders.com/wf80/index.jsp?topic=%2Fpubdocs%2FRStat16%2Fsource%2Ftopic49.htm
+
+https://sanjayjsw05.medium.com/why-lift-has-bigger-role-than-confidence-in-association-rules-619324fc21ab
+
+https://towardsdatascience.com/hierarchical-clustering-on-categorical-data-in-r-a27e578f2995
